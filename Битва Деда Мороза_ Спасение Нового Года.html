@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Битва Деда Мороза: Спасение Нового Года</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Marck+Script&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #061024;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #ffffff;
+      touch-action: manipulation;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #061024 0%, #0e2752 60%, #1b447d 100%);
+    }
+
+    .festive-script {
+      font-family: 'Marck Script', cursive;
+    }
+
+    .glass-card {
+      background: rgba(11, 25, 54, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(250, 204, 21, 0.45);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-festive {
+      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .btn-festive:active {
+      transform: scale(0.96);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+      transition: transform 0.12s ease;
+    }
+    .btn-gold:active {
+      transform: scale(0.96);
+    }
+
+    .ctrl-pad {
+      background: rgba(15, 36, 74, 0.78);
+      border: 2px solid rgba(255, 255, 255, 0.32);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      transition: transform 0.08s ease, background-color 0.08s ease;
+    }
+    .ctrl-pad:active, .ctrl-pad.pressed {
+      transform: scale(0.9);
+      background: rgba(56, 189, 248, 0.85);
+      border-color: #ffffff;
+    }
+
+    @keyframes ultPulse {
+      0% { transform: scale(1); box-shadow: 0 0 12px #c084fc; }
+      100% { transform: scale(1.08); box-shadow: 0 0 28px #e879f9; }
+    }
+    .ult-ready {
+      opacity: 1 !important;
+      animation: ultPulse 0.85s infinite alternate;
+    }
+
+    @keyframes bannerPop {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
+      20% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+      80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    }
+    .banner-anim {
+      animation: bannerPop 2.1s ease forwards;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Игровой холст -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Всплывающий баннер волны -->
+  <div id="waveBanner" class="hidden fixed top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none text-center w-11/12">
+    <span id="waveBannerText" class="inline-block px-5 py-2.5 rounded-2xl bg-slate-950/80 border border-amber-400/60 text-amber-300 font-black text-xl sm:text-3xl tracking-wide shadow-2xl">
+      ВОЛНА 1
+    </span>
+  </div>
+
+  <!-- Верхняя панель показателей (HUD) -->
+  <div id="hud" class="hidden fixed top-3 left-3 right-3 z-10 pointer-events-none flex flex-col gap-2 max-w-3xl mx-auto">
+    <div class="grid grid-cols-4 gap-1.5 sm:gap-3">
+      <!-- Здоровье -->
+      <div class="bg-slate-950/75 border border-white/20 rounded-xl px-2.5 py-1.5 backdrop-blur-md">
+        <div class="text-[11px] sm:text-xs font-bold text-rose-300 flex justify-between">
+          <span>❤️ HP</span>
+          <span id="hpText">100</span>
+        </div>
+        <div class="w-full h-2 bg-white/15 rounded-full overflow-hidden mt-1">
+          <div id="hpBar" class="h-full bg-gradient-to-r from-rose-500 to-red-400 transition-all duration-150" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <!-- Волна -->
+      <div class="bg-slate-950/75 border border-white/20 rounded-xl px-2.5 py-1.5 backdrop-blur-md flex flex-col justify-center items-center">
+        <span class="text-[10px] sm:text-xs text-sky-300 font-semibold">ВОЛНА</span>
+        <span id="waveText" class="text-xs sm:text-base font-black text-white">1 / 3 🎄</span>
+      </div>
+
+      <!-- Подарки -->
+      <div class="bg-slate-950/75 border border-white/20 rounded-xl px-2.5 py-1.5 backdrop-blur-md flex flex-col justify-center items-center">
+        <span class="text-[10px] sm:text-xs text-amber-300 font-semibold">ПОДАРКИ</span>
+        <span id="scoreText" class="text-xs sm:text-base font-black text-amber-400">0 🎁</span>
+      </div>
+
+      <!-- Энергия Бури -->
+      <div class="bg-slate-950/75 border border-white/20 rounded-xl px-2.5 py-1.5 backdrop-blur-md">
+        <div class="text-[11px] sm:text-xs font-bold text-purple-300 flex justify-between">
+          <span>❄️ БУРЯ</span>
+          <span id="ultText">0%</span>
+        </div>
+        <div class="w-full h-2 bg-white/15 rounded-full overflow-hidden mt-1">
+          <div id="ultBar" class="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-150" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Полоска здоровья Босса -->
+    <div id="bossHud" class="hidden w-full max-w-md mx-auto bg-red-950/85 border-2 border-red-500 rounded-2xl px-4 py-2 shadow-lg backdrop-blur-md">
+      <div class="flex justify-between items-center text-xs font-black text-red-200 uppercase tracking-wider mb-1">
+        <span>👹 Гринч — Повелитель Стужи</span>
+        <span id="bossHpText">650 / 650</span>
+      </div>
+      <div class="w-full h-3 bg-black/50 rounded-full overflow-hidden">
+        <div id="bossHpBar" class="h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 transition-all duration-100" style="width: 100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Сенсорные кнопки управления (внизу экрана) -->
+  <div id="touchControls" class="hidden fixed bottom-4 left-4 right-4 z-15 pointer-events-none flex justify-between items-end max-w-3xl mx-auto">
+    <div class="flex gap-3 pointer-events-auto">
+      <button id="btnLeft" type="button" aria-label="Влево"
+        class="ctrl-pad w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center text-2xl font-black text-white">
+        ◀
+      </button>
+      <button id="btnRight" type="button" aria-label="Вправо"
+        class="ctrl-pad w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center text-2xl font-black text-white">
+        ▶
+      </button>
+    </div>
+
+    <div class="flex gap-3 items-end pointer-events-auto">
+      <button id="btnUlt" type="button" aria-label="Морозная буря"
+        class="w-15 h-15 p-3.5 rounded-full bg-gradient-to-br from-purple-500 to-indigo-700 border-2 border-purple-200 flex items-center justify-center text-2xl shadow-xl opacity-45 transition-opacity">
+        ⚡
+      </button>
+      <button id="btnShoot" type="button" aria-label="Бросить снежок"
+        class="ctrl-pad w-20 h-20 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 border-2 border-sky-100 flex items-center justify-center text-3xl shadow-2xl">
+        ❄️
+      </button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН 1: СТАРТОВОЕ МЕНЮ -->
+  <div id="startScreen" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto">
+    <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full text-center flex flex-col items-center gap-4 my-auto">
+      <div class="text-5xl sm:text-6xl animate-bounce">🎅🎄❄️</div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-white via-amber-200 to-white bg-clip-text text-transparent">
+        Битва Деда Мороза
+      </h1>
+      <p class="text-sm sm:text-base text-sky-100/90 leading-relaxed">
+        Злые снеговики и Гринч хотят сорвать праздник! Пройди 3 волны, победи босса и открой новогоднее поздравление.
+      </p>
+
+      <input id="friendInputStart" type="text" maxlength="25" placeholder="Впиши имя друга (необязательно)"
+        class="w-full px-4 py-3 rounded-2xl bg-slate-900/90 border border-sky-300/30 text-white placeholder-slate-400 text-sm text-center focus:outline-none focus:border-amber-400">
+
+      <div class="w-full bg-white/5 border border-white/10 rounded-2xl p-3.5 text-left text-xs sm:text-sm text-sky-200 space-y-1.5">
+        <div>🎮 <b>◀ ▶</b> (или стрелки / A-D) — движение</div>
+        <div>❄️ <b>Снежок</b> (или Пробел) — атака врагов</div>
+        <div>⚡ <b>Морозная буря</b> (или E) — ульта при 100%</div>
+        <div>🍊 Лови <b>мандарины</b> для лечения и <b>подарки</b> 🎁</div>
+      </div>
+
+      <button id="startBtn" type="button" class="btn-festive w-full py-4 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wider text-white cursor-pointer">
+        В БОЙ ЗА НОВЫЙ ГОД! 🚀
+      </button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН 2: ПОРАЖЕНИЕ -->
+  <div id="loseScreen" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full text-center flex flex-col items-center gap-4 border-red-400/50">
+      <div class="text-6xl">🥶❄️</div>
+      <h2 class="text-2xl sm:text-3xl font-black text-red-400">МОРОЗ ОДОЛЕЛ...</h2>
+      <p class="text-sm sm:text-base text-slate-200">
+        Снеговики оказались слишком хитрыми, но волшебный посох всё ещё сияет! Попробуй ещё раз и спаси праздник!
+      </p>
+      <button id="retryBtn" type="button" class="btn-festive w-full py-4 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wider text-white cursor-pointer">
+        ПОПРОБОВАТЬ СНОВА 🎅
+      </button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН 3: ПОБЕДА И НОВОГОДНЯЯ ОТКРЫТКА -->
+  <div id="winScreen" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-[2px] overflow-y-auto">
+    <div class="glass-card rounded-3xl p-5 sm:p-8 max-w-lg w-full text-center flex flex-col items-center gap-3.5 border-amber-400/80 my-auto">
+      <div class="flex justify-center gap-2 text-2xl sm:text-3xl">
+        <span>🎄</span><span>✨</span><span>🎅</span><span>🎁</span><span>🥂</span><span>✨</span><span>🎄</span>
+      </div>
+
+      <h2 class="festive-script text-5xl sm:text-6xl text-amber-300 drop-shadow-[0_2px_12px_rgba(251,191,36,0.65)] leading-none">
+        С Новым Годом!
+      </h2>
+
+      <div id="recipientTag" class="px-4 py-1 rounded-full bg-amber-400/20 border border-amber-300/50 text-amber-200 font-bold text-sm sm:text-base">
+        Праздник спасён! ✨
+      </div>
+
+      <div id="greetingCardText" class="w-full bg-slate-900/65 border border-amber-300/30 rounded-2xl p-4 text-sm sm:text-base text-white/95 leading-relaxed shadow-inner">
+        Дед Мороз победил злодеев и спас праздник благодаря тебе! 🎆<br><br>
+        Пусть в Новом году сбудутся самые заветные мечты, каждый день приносит радость, крепкое здоровье, крутые победы и море поводов для улыбок! Счастья, тепла и настоящего волшебства! ✨
+      </div>
+
+      <div class="w-full flex flex-col sm:flex-row gap-2">
+        <input id="friendInputWin" type="text" maxlength="25" placeholder="Впиши имя друга для открытки..."
+          class="flex-1 px-3.5 py-3 rounded-xl bg-slate-950/85 border border-amber-300/35 text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-amber-400">
+        <button id="copyBtn" type="button" class="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition font-bold text-xs sm:text-sm text-white whitespace-nowrap cursor-pointer shadow-lg">
+          📋 Скопировать текст
+        </button>
+      </div>
+
+      <div id="copyFeedback" class="hidden text-xs font-bold text-emerald-300">
+        ✅ Поздравление скопировано! Можно отправлять другу!
+      </div>
+
+      <div class="w-full flex items-center justify-between text-xs sm:text-sm text-amber-200 font-bold px-1">
+        <span>Подарков: <b id="finalGifts" class="text-amber-400 text-base">0</b> 🎁</span>
+        <span>Праздник спасён на 100%!</span>
+      </div>
+
+      <button id="playAgainBtn" type="button" class="btn-gold w-full py-3.5 rounded-2xl font-black text-base sm:text-lg uppercase tracking-wider text-white cursor-pointer">
+        СЫГРАТЬ ЕЩЁ РАЗ 🔄
+      </button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Элементы интерфейса
+  const hud = document.getElementById('hud');
+  const bossHud = document.getElementById('bossHud');
+  const touchControls = document.getElementById('touchControls');
+  const startScreen = document.getElementById('startScreen');
+  const loseScreen = document.getElementById('loseScreen');
+  const winScreen = document.getElementById('winScreen');
+  const waveBanner = document.getElementById('waveBanner');
+  const waveBannerText = document.getElementById('waveBannerText');
+
+  const hpText = document.getElementById('hpText');
+  const hpBar = document.getElementById('hpBar');
+  const waveText = document.getElementById('waveText');
+  const scoreText = document.getElementById('scoreText');
+  const ultText = document.getElementById('ultText');
+  const ultBar = document.getElementById('ultBar');
+  const bossHpText = document.getElementById('bossHpText');
+  const bossHpBar = document.getElementById('bossHpBar');
+  const btnUlt = document.getElementById('btnUlt');
+
+  const friendInputStart = document.getElementById('friendInputStart');
+  const friendInputWin = document.getElementById('friendInputWin');
+  const recipientTag = document.getElementById('recipientTag');
+  const greetingCardText = document.getElementById('greetingCardText');
+  const finalGifts = document.getElementById('finalGifts');
+  const copyFeedback = document.getElementById('copyFeedback');
+
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+
+  function resizeCanvas() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // Звуковой движок (Web Audio API)
+  let audioCtx = null;
+  function unlockAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+  }
+
+  function playTone(freq, type, duration, vol = 0.08, delay = 0) {
+    if (!audioCtx) return;
+    try {
+      const now = audioCtx.currentTime + delay;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(vol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+    } catch (e) {}
+  }
+
+  function playJingleBells() {
+    const melody = [
+      [659.25, 0.18, 0.00], [659.25, 0.18, 0.22], [659.25, 0.36, 0.44],
+      [659.25, 0.18, 0.88], [659.25, 0.18, 1.10], [659.25, 0.36, 1.32],
+      [659.25, 0.18, 1.76], [783.99, 0.18, 1.98], [523.25, 0.25, 2.20],
+      [587.33, 0.15, 2.48], [659.25, 0.65, 2.68],
+      [698.46, 0.18, 3.45], [698.46, 0.18, 3.67], [698.46, 0.25, 3.89],
+      [698.46, 0.18, 4.18], [659.25, 0.18, 4.40], [659.25, 0.18, 4.62],
+      [783.99, 0.20, 4.84], [783.99, 0.20, 5.06], [698.46, 0.20, 5.28],
+      [587.33, 0.20, 5.50], [523.25, 0.70, 5.72]
+    ];
+    melody.forEach(([f, d, t]) => playTone(f, 'triangle', d, 0.1, t));
+  }
+
+  // Состояние игры
+  let state = 'START'; // START | PLAYING | WIN | LOSE
+  let score = 0;
+  let wave = 1;
+  let ultEnergy = 0;
+  let freezeTime = 0;
+  let shakeTime = 0;
+  let spawnedCount = 0;
+  let totalToSpawn = 0;
+  let spawnTimer = 0;
+
+  const input = { left: false, right: false };
+
+  const player = {
+    x: width / 2,
+    y: height - 135,
+    hp: 100,
+    maxHp: 100,
+    speed: 410,
+    shootCooldown: 0,
+    invulnTimer: 0
+  };
+
+  let snowballs = [];
+  let enemyProjectiles = [];
+  let enemies = [];
+  let bonuses = [];
+  let particles = [];
+  let fireworks = [];
+  let snowflakes = [];
+
+  // Инициализация фонового снега
+  for (let i = 0; i < 70; i++) {
+    snowflakes.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      r: 1.5 + Math.random() * 3.2,
+      vy: 30 + Math.random() * 60,
+      vx: -18 + Math.random() * 36
+    });
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function syncFriendName(sourceInput, targetInput) {
+    targetInput.value = sourceInput.value;
+    const cleanName = sourceInput.value.trim();
+    if (cleanName) {
+      recipientTag.textContent = `Для: ${cleanName} 🎄`;
+      greetingCardText.innerHTML = `<b class="text-amber-300">${escapeHtml(cleanName)}</b>, Дед Мороз победил злодеев и спас праздник благодаря тебе! 🎆<br><br>Пусть в Новом году сбудутся самые заветные мечты, каждый день приносит радость, крепкое здоровье, крутые победы и море поводов для улыбок! Счастья, тепла и настоящего волшебства! ✨`;
+    } else {
+      recipientTag.textContent = 'Праздник спасён! ✨';
+      greetingCardText.innerHTML = `Дед Мороз победил злодеев и спас праздник благодаря тебе! 🎆<br><br>Пусть в Новом году сбудутся самые заветные мечты, каждый день приносит радость, крепкое здоровье, крутые победы и море поводов для улыбок! Счастья, тепла и настоящего волшебства! ✨`;
+    }
+  }
+
+  friendInputStart.addEventListener('input', () => syncFriendName(friendInputStart, friendInputWin));
+  friendInputWin.addEventListener('input', () => syncFriendName(friendInputWin, friendInputStart));
+
+  function showWaveBanner(label) {
+    waveBannerText.textContent = label;
+    waveBanner.classList.remove('hidden', 'banner-anim');
+    void waveBanner.offsetWidth;
+    waveBanner.classList.add('banner-anim');
+  }
+
+  function updateHud() {
+    const safeHp = Math.max(0, Math.round(player.hp));
+    hpText.textContent = safeHp;
+    hpBar.style.width = `${(safeHp / player.maxHp) * 100}%`;
+    waveText.textContent = `${wave} / 3 🎄`;
+    scoreText.textContent = `${score} 🎁`;
+
+    const safeUlt = Math.min(100, Math.round(ultEnergy));
+    ultText.textContent = `${safeUlt}%`;
+    ultBar.style.width = `${safeUlt}%`;
+
+    if (safeUlt >= 100) {
+      btnUlt.classList.add('ult-ready');
+    } else {
+      btnUlt.classList.remove('ult-ready');
+    }
+  }
+
+  function startWave(waveNum) {
+    wave = waveNum;
+    spawnedCount = 0;
+    spawnTimer = 0.4;
+    updateHud();
+
+    if (wave === 1) {
+      totalToSpawn = 7;
+      bossHud.classList.add('hidden');
+      showWaveBanner('ВОЛНА 1: СНЕГОВИКИ-ХУЛИГАНЫ ⛄');
+    } else if (wave === 2) {
+      totalToSpawn = 10;
+      bossHud.classList.add('hidden');
+      showWaveBanner('ВОЛНА 2: ГРИНЧИ-ВОРИШКИ 👺');
+    } else if (wave === 3) {
+      totalToSpawn = 1;
+      bossHud.classList.remove('hidden');
+      bossHpText.textContent = '650 / 650';
+      bossHpBar.style.width = '100%';
+      showWaveBanner('БОСС: ПОВЕЛИТЕЛЬ СТУЖИ! 👹');
+      playTone(175, 'sawtooth', 0.45, 0.12);
+    }
+  }
+
+  function startGame() {
+    unlockAudio();
+    playTone(523.25, 'sine', 0.14, 0.1);
+    playTone(659.25, 'sine', 0.2, 0.1, 0.1);
+
+    state = 'PLAYING';
+    score = 0;
+    ultEnergy = 0;
+    freezeTime = 0;
+    shakeTime = 0;
+
+    player.hp = 100;
+    player.x = width / 2;
+    player.y = height - 135;
+    player.invulnTimer = 0;
+    player.shootCooldown = 0;
+
+    snowballs = [];
+    enemyProjectiles = [];
+    enemies = [];
+    bonuses = [];
+    particles = [];
+    fireworks = [];
+
+    startScreen.classList.add('hidden');
+    loseScreen.classList.add('hidden');
+    winScreen.classList.add('hidden');
+    copyFeedback.classList.add('hidden');
+    hud.classList.remove('hidden');
+    touchControls.classList.remove('hidden');
+
+    startWave(1);
+  }
+
+  function shootSnowball() {
+    if (state !== 'PLAYING' || player.shootCooldown > 0) return;
+    player.shootCooldown = 0.2;
+    snowballs.push({
+      x: player.x,
+      y: player.y - 28,
+      r: 9,
+      vy: -650,
+      damage: 25
+    });
+    playTone(760, 'sine', 0.08, 0.06);
+  }
+
+  function activateStorm() {
+    if (state !== 'PLAYING' || ultEnergy < 100) return;
+    ultEnergy = 0;
+    freezeTime = 3.2;
+    shakeTime = 0.35;
+    updateHud();
+    showWaveBanner('❄️ МОРОЗНАЯ БУРЯ! ❄️');
+    playTone(880, 'triangle', 0.35, 0.12);
+    playTone(1174.66, 'sine', 0.5, 0.1, 0.1);
+
+    enemyProjectiles = [];
+    enemies.forEach(enemy => {
+      enemy.hp -= enemy.isBoss ? 130 : 65;
+      createParticles(enemy.x, enemy.y, '#7dd3fc', 16);
+      if (enemy.isBoss) {
+        const cur = Math.max(0, Math.round(enemy.hp));
+        bossHpText.textContent = `${cur} / ${enemy.maxHp}`;
+        bossHpBar.style.width = `${(cur / enemy.maxHp) * 100}%`;
+      }
+    });
+  }
+
+  function spawnEnemy() {
+    if (wave === 1) {
+      enemies.push({
+        x: 42 + Math.random() * (width - 84),
+        y: -40,
+        r: 24,
+        hp: 50,
+        maxHp: 50,
+        vy: 80 + Math.random() * 35,
+        vx: (Math.random() - 0.5) * 75,
+        emoji: '⛄',
+        shootTimer: 1.7 + Math.random() * 1.4,
+        isBoss: false
+      });
+    } else if (wave === 2) {
+      const agile = Math.random() > 0.45;
+      enemies.push({
+        x: 42 + Math.random() * (width - 84),
+        y: -40,
+        r: 25,
+        hp: agile ? 50 : 75,
+        maxHp: agile ? 50 : 75,
+        vy: agile ? 115 : 85,
+        vx: (Math.random() - 0.5) * 135,
+        emoji: agile ? '👺' : '😈',
+        shootTimer: 1.4 + Math.random() * 1.2,
+        isBoss: false
+      });
+    } else if (wave === 3) {
+      enemies.push({
+        x: width / 2,
+        y: 145,
+        r: 46,
+        hp: 650,
+        maxHp: 650,
+        vy: 0,
+        vx: 140,
+        emoji: '👹',
+        shootTimer: 1.1,
+        isBoss: true
+      });
+    }
+  }
+
+  function createParticles(x, y, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 60 + Math.random() * 190;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0.45 + Math.random() * 0.35,
+        maxLife: 0.8,
+        color,
+        r: 3 + Math.random() * 4
+      });
+    }
+  }
+
+  function launchFirework() {
+    const fx = 55 + Math.random() * (width - 110);
+    const fy = 65 + Math.random() * (height * 0.45);
+    const palette = ['#fde047', '#f43f5e', '#38bdf8', '#4ade80', '#c084fc', '#fb923c'];
+    const color = palette[Math.floor(Math.random() * palette.length)];
+    for (let i = 0; i < 40; i++) {
+      const angle = (Math.PI * 2 * i) / 40 + (Math.random() * 0.12);
+      const speed = 75 + Math.random() * 215;
+      fireworks.push({
+        x: fx, y: fy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.1 + Math.random() * 0.5,
+        maxLife: 1.6,
+        color,
+        r: 2.5 + Math.random() * 2.5
+      });
+    }
+  }
+
+  function damagePlayer(dmg) {
+    if (player.invulnTimer > 0) return;
+    player.hp -= dmg;
+    player.invulnTimer = 0.75;
+    shakeTime = 0.25;
+    createParticles(player.x, player.y, '#ef4444', 14);
+    playTone(145, 'sawtooth', 0.18, 0.1);
+    updateHud();
+    if (player.hp <= 0) {
+      state = 'LOSE';
+      hud.classList.add('hidden');
+      bossHud.classList.add('hidden');
+      touchControls.classList.add('hidden');
+      loseScreen.classList.remove('hidden');
+      playTone(210, 'sawtooth', 0.35, 0.1);
+      playTone(155, 'sawtooth', 0.45, 0.1, 0.25);
+    }
+  }
+
+  function triggerVictory() {
+    state = 'WIN';
+    hud.classList.add('hidden');
+    bossHud.classList.add('hidden');
+    touchControls.classList.add('hidden');
+    syncFriendName(friendInputStart, friendInputWin);
+    finalGifts.textContent = score;
+    winScreen.classList.remove('hidden');
+    playJingleBells();
+    launchFirework();
+    launchFirework();
+  }
+
+  // Привязка кнопок
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+  document.getElementById('playAgainBtn').addEventListener('click', startGame);
+
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    const friendName = friendInputWin.value.trim();
+    const header = friendName ? `${friendName}, с Новым Годом! 🎄✨\n\n` : `С Новым Годом! 🎄✨\n\n`;
+    const fullText = `${header}Дед Мороз победил злодеев и спас праздник!\nПусть в Новом году сбудутся самые заветные мечты, каждый день приносит радость, крепкое здоровье, крутые победы и море поводов для улыбок! Счастья, тепла и настоящего волшебства! 🎅🎁🥂`;
+
+    const textarea = document.createElement('textarea');
+    textarea.value = fullText;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      copyFeedback.classList.remove('hidden');
+    } catch (e) {}
+    document.body.removeChild(textarea);
+  });
+
+  function bindDirectionButton(btn, dirKey) {
+    const press = (e) => {
+      e.preventDefault();
+      input[dirKey] = true;
+      btn.classList.add('pressed');
+    };
+    const release = (e) => {
+      e.preventDefault();
+      input[dirKey] = false;
+      btn.classList.remove('pressed');
+    };
+    btn.addEventListener('touchstart', press, { passive: false });
+    btn.addEventListener('touchend', release, { passive: false });
+    btn.addEventListener('touchcancel', release, { passive: false });
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+  }
+
+  bindDirectionButton(document.getElementById('btnLeft'), 'left');
+  bindDirectionButton(document.getElementById('btnRight'), 'right');
+
+  const btnShoot = document.getElementById('btnShoot');
+  btnShoot.addEventListener('touchstart', (e) => { e.preventDefault(); shootSnowball(); }, { passive: false });
+  btnShoot.addEventListener('mousedown', (e) => { e.preventDefault(); shootSnowball(); });
+
+  btnUlt.addEventListener('touchstart', (e) => { e.preventDefault(); activateStorm(); }, { passive: false });
+  btnUlt.addEventListener('mousedown', (e) => { e.preventDefault(); activateStorm(); });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      if (state === 'PLAYING') e.preventDefault();
+      shootSnowball();
+    }
+    if (e.code === 'KeyE' || e.code === 'ShiftLeft') activateStorm();
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+  });
+
+  // Игровой цикл
+  let lastTimestamp = performance.now();
+  let fireworkCooldown = 0;
+
+  function update(dt) {
+    // Фоновый снегопад
+    snowflakes.forEach(s => {
+      s.y += s.vy * dt;
+      s.x += s.vx * dt;
+      if (s.y > height) { s.y = -5; s.x = Math.random() * width; }
+      if (s.x < 0) s.x = width;
+      if (s.x > width) s.x = 0;
+    });
+
+    if (shakeTime > 0) shakeTime = Math.max(0, shakeTime - dt);
+
+    if (state === 'WIN') {
+      fireworkCooldown -= dt;
+      if (fireworkCooldown <= 0) {
+        launchFirework();
+        fireworkCooldown = 0.5 + Math.random() * 0.45;
+      }
+      fireworks.forEach(f => {
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+        f.vy += 125 * dt;
+        f.life -= dt;
+      });
+      fireworks = fireworks.filter(f => f.life > 0);
+      return;
+    }
+
+    if (state !== 'PLAYING') return;
+
+    player.y = height - 135;
+    if (player.shootCooldown > 0) player.shootCooldown -= dt;
+    if (player.invulnTimer > 0) player.invulnTimer -= dt;
+    if (freezeTime > 0) freezeTime -= dt;
+
+    if (input.left) player.x -= player.speed * dt;
+    if (input.right) player.x += player.speed * dt;
+    player.x = Math.max(34, Math.min(width - 34, player.x));
+
+    // Спавн врагов
+    if (spawnedCount < totalToSpawn) {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnEnemy();
+        spawnedCount++;
+        spawnTimer = wave === 1 ? 1.3 : 1.0;
+      }
+    } else if (enemies.length === 0) {
+      if (wave < 3) {
+        startWave(wave + 1);
+      } else {
+        triggerVictory();
+        return;
+      }
+    }
+
+    // Снежки Деда Мороза
+    snowballs.forEach(b => b.y += b.vy * dt);
+    snowballs = snowballs.filter(b => b.y > -20);
+
+    // Враги
+    enemies.forEach(e => {
+      if (freezeTime <= 0) {
+        if (e.isBoss) {
+          e.x += e.vx * dt;
+          if (e.x < 58 || e.x > width - 58) e.vx *= -1;
+          e.shootTimer -= dt;
+          if (e.shootTimer <= 0) {
+            e.shootTimer = 1.1;
+            [-115, 0, 115].forEach(vx => {
+              enemyProjectiles.push({ x: e.x, y: e.y + 32, vx, vy: 255, r: 9 });
+            });
+          }
+        } else {
+          e.y += e.vy * dt;
+          e.x += e.vx * dt;
+          if (e.x < 32 || e.x > width - 32) e.vx *= -1;
+          e.shootTimer -= dt;
+          if (e.shootTimer <= 0) {
+            e.shootTimer = 2.0 + Math.random();
+            enemyProjectiles.push({ x: e.x, y: e.y + 18, vx: 0, vy: 225, r: 8 });
+          }
+        }
+      }
+
+      // Столкновение с игроком
+      if (Math.hypot(e.x - player.x, e.y - player.y) < e.r + 22) {
+        damagePlayer(20);
+        if (!e.isBoss) e.hp = 0;
+      }
+
+      // Попадание снежков
+      snowballs.forEach(b => {
+        if (b.hit) return;
+        if (Math.hypot(e.x - b.x, e.y - b.y) < e.r + b.r) {
+          b.hit = true;
+          e.hp -= b.damage;
+          createParticles(b.x, b.y, '#bae6fd', 6);
+          playTone(340, 'square', 0.05, 0.04);
+          if (e.isBoss) {
+            const cur = Math.max(0, Math.round(e.hp));
+            bossHpText.textContent = `${cur} / ${e.maxHp}`;
+            bossHpBar.style.width = `${(cur / e.maxHp) * 100}%`;
+          }
+        }
+      });
+
+      if (e.hp <= 0 && !e.dead) {
+        e.dead = true;
+        createParticles(e.x, e.y, '#fde047', e.isBoss ? 42 : 14);
+        playTone(460, 'triangle', 0.14, 0.08);
+        ultEnergy = Math.min(100, ultEnergy + (e.isBoss ? 50 : 25));
+        score += e.isBoss ? 5 : 1;
+
+        if (!e.isBoss && Math.random() < 0.48) {
+          bonuses.push({
+            x: e.x,
+            y: e.y,
+            vy: 140,
+            kind: Math.random() < 0.45 ? 'mandarin' : 'gift'
+          });
+        }
+        updateHud();
+      }
+
+      if (!e.isBoss && e.y > height + 40) {
+        e.dead = true;
+        damagePlayer(12);
+      }
+    });
+
+    snowballs = snowballs.filter(b => !b.hit);
+    enemies = enemies.filter(e => !e.dead);
+
+    // Снаряды врагов
+    enemyProjectiles.forEach(p => {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (Math.hypot(p.x - player.x, p.y - player.y) < p.r + 20) {
+        p.hit = true;
+        damagePlayer(15);
+      }
+    });
+    enemyProjectiles = enemyProjectiles.filter(p => !p.hit && p.y < height + 30);
+
+    // Бонусы
+    bonuses.forEach(b => {
+      b.y += b.vy * dt;
+      if (Math.hypot(b.x - player.x, b.y - player.y) < 38) {
+        b.collected = true;
+        if (b.kind === 'mandarin') {
+          player.hp = Math.min(player.maxHp, player.hp + 25);
+          createParticles(b.x, b.y, '#fb923c', 12);
+        } else {
+          score += 2;
+          ultEnergy = Math.min(100, ultEnergy + 15);
+          createParticles(b.x, b.y, '#facc15', 12);
+        }
+        playTone(880, 'sine', 0.12, 0.08);
+        updateHud();
+      }
+    });
+    bonuses = bonuses.filter(b => !b.collected && b.y < height + 30);
+
+    // Частицы
+    particles.forEach(pt => {
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      pt.life -= dt;
+    });
+    particles = particles.filter(pt => pt.life > 0);
+  }
+
+  function render() {
+    ctx.save();
+    if (shakeTime > 0) {
+      ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+    }
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Снежинки на фоне
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+    snowflakes.forEach(s => {
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Сугроб внизу
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(0, height - 100, width, 100);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(0, height - 100, width, 8);
+
+    // Салюты при победе
+    if (state === 'WIN') {
+      fireworks.forEach(f => {
+        ctx.globalAlpha = Math.max(0, f.life / f.maxLife);
+        ctx.fillStyle = f.color;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    if (state === 'PLAYING') {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Бонусы
+      bonuses.forEach(b => {
+        ctx.font = '30px sans-serif';
+        ctx.fillText(b.kind === 'mandarin' ? '🍊' : '🎁', b.x, b.y);
+      });
+
+      // Снежки
+      snowballs.forEach(b => {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      });
+
+      // Ледяные заряды врагов
+      enemyProjectiles.forEach(p => {
+        ctx.fillStyle = '#a855f7';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f3e8ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      // Враги
+      enemies.forEach(e => {
+        ctx.font = e.isBoss ? '76px sans-serif' : '44px sans-serif';
+        ctx.fillText(e.emoji, e.x, e.y);
+
+        if (freezeTime > 0) {
+          ctx.font = '28px sans-serif';
+          ctx.fillText('🧊', e.x, e.y);
+        }
+
+        if (!e.isBoss && e.hp < e.maxHp) {
+          const barW = 40;
+          ctx.fillStyle = 'rgba(0,0,0,0.55)';
+          ctx.fillRect(e.x - barW / 2, e.y - 32, barW, 5);
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(e.x - barW / 2, e.y - 32, barW * (e.hp / e.maxHp), 5);
+        }
+      });
+
+      // Дед Мороз
+      if (player.invulnTimer <= 0 || Math.floor(player.invulnTimer * 16) % 2 === 0) {
+        ctx.font = '52px sans-serif';
+        ctx.fillText('🎅', player.x, player.y);
+      }
+
+      // Частицы эффектов
+      particles.forEach(pt => {
+        ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+  }
+
+  function gameLoop(now) {
+    const dt = Math.min(0.05, (now - lastTimestamp) / 1000);
+    lastTimestamp = now;
+    update(dt);
+    render();
+    requestAnimationFrame(gameLoop);
+  }
+
+  requestAnimationFrame(gameLoop);
+})();
+</script>
+</body>
+</html>
